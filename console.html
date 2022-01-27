@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <link rel="stylesheet" data-name="vs/editor/editor.main"
+        href="/node_modules/monaco-editor/dev/vs/editor/editor.main.css" />
+</head>
+
+<body onresize="resizeEditor()">
+    <div id="editor-console" style="box-sizing: border-box; background-color: grey; height: 290px;"></div>
+    <script>
+        var require = { paths: { vs: '/node_modules/monaco-editor/dev/vs' } };
+    </script>
+    <script src="/node_modules/monaco-editor/dev/vs/loader.js"></script>
+    <script src="/node_modules/monaco-editor/dev/vs/editor/editor.main.nls.js"></script>
+    <script src="/node_modules/monaco-editor/dev/vs/editor/editor.main.js"></script>
+    <script>
+        function resizeEditor() {
+            editor.layout();
+        }
+
+        // addEventListener support for IE8
+        function bindEvent(element, eventName, eventHandler) {
+            if (element.addEventListener) {
+                element.addEventListener(eventName, eventHandler, false);
+            } else if (element.attachEvent) {
+                element.attachEvent('on' + eventName, eventHandler);
+            }
+        }
+
+        var editor = monaco.editor.create(document.getElementById('editor-console'), {
+            value: "[EMPTY]",
+            language: 'plaintext',
+            lineNumbers: 'off',
+            roundedSelection: true,
+            scrollBeyondLastLine: false,
+            readOnly: true,
+            theme: 'vs-light',
+            wrappingIndent: 'none',
+            automaticLayout: true
+        });
+
+        // Listen to message from parent window
+        bindEvent(window, 'message', function (event) {
+            editor.setValue(new Date().toLocaleString() + ': \n' + event.data + '\n' + editor.getValue());
+        });
+    </script>
+</body>
+
+</html>

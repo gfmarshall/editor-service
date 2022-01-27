@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <link rel="stylesheet" data-name="vs/editor/editor.main"
+        href="/node_modules/monaco-editor/dev/vs/editor/editor.main.css" />
+
+    <style>
+        .button_bar {
+            height: fit-content;
+            width: 100%;
+            position: relative;
+            border: none;
+            background-color: rgb(58, 58, 58);
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+            position: relative;
+            left: 10px;
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+    </style>
+</head>
+
+<body onresize="resizeEditor()">
+    <div id="button-bar" class="button_bar">
+        <button class="button" id="save_button">Save from IFrame</button>
+    </div>
+    <div id="editor-service" style="box-sizing: border-box; height: 480px;"></div>
+    <script>
+        var require = { paths: { vs: '/node_modules/monaco-editor/dev/vs' } };
+    </script>
+    <script src="/node_modules/monaco-editor/dev/vs/loader.js"></script>
+    <script src="/node_modules/monaco-editor/dev/vs/editor/editor.main.nls.js"></script>
+    <script src="/node_modules/monaco-editor/dev/vs/editor/editor.main.js"></script>
+    <script>
+        function isArgumentTrue(expression) {
+            let val = expression.trim().toLowerCase();
+            if (val == 'true' || val == 'yes' || val == '1') {
+                return true;
+            };
+            return false;
+        }
+
+        function resizeEditor() {
+            editor.layout();
+        }
+
+        // addEventListener support for IE8
+        function bindEvent(element, eventName, eventHandler) {
+            if (element.addEventListener) {
+                element.addEventListener(eventName, eventHandler, false);
+            } else if (element.attachEvent) {
+                element.attachEvent('on' + eventName, eventHandler);
+            }
+        }
+
+        var urlParams = new URLSearchParams(window.location.search);
+        console.log('EDITOR:' + 'urlParams: ' + urlParams);
+
+        if (!isArgumentTrue(urlParams.get('button'))) {
+            document.getElementById("button-bar").style.display = "none";
+        }
+
+        // Update on 'keydown' OR 'change' (default) but not both
+        if (isArgumentTrue(urlParams.get('keydown'))) {
+            // Update every keypress (probably a bit extreme)
+            bindEvent(document, 'keydown', function (event) {
+                sendMessage(editor.getValue());
+            });
+        } else {
+            if (isArgumentTrue(urlParams.get('change'))) {
+                bindEvent(document, 'change', function (event) {
+                    sendMessage(editor.getValue());
+                });
+            }
+        }
+
+        var editor = monaco.editor.create(document.getElementById('editor-service'), {
+            value: "// First line\nfunction hello() {\n\talert('Hello !');\n}\n// Last line",
+            language: 'javascript',
+            lineNumbers: 'on',
+            roundedSelection: true,
+            scrollBeyondLastLine: false,
+            readOnly: false,
+            theme: 'vs-dark',
+            wrappingIndent: 'indent',
+            automaticLayout: true
+        });
+
+        var saveButton = document.getElementById('save_button');
+
+        // Send random message data on every button click
+        bindEvent(saveButton, 'click', function (event) {
+            sendMessage(editor.getValue());
+        });
+
+        // Send a message to the parent
+        var sendMessage = function (msg) {
+            window.parent.postMessage(msg, '*');
+        };
+
+        // Listen to messages from parent window
+        bindEvent(window, 'message', function (event) {
+            if (event.data == 'SAVE_BUTTON_PRESSED') {
+                sendMessage(editor.getValue());
+            };
+        });
+
+
+    </script>
+</body>
+
+</html>

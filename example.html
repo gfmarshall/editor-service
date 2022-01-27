@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Example: The Editor is embedded in an IFrame. When the editor content changes, the updated content will
+        be displayed in the Console panel (a read-only Monaco Editor panel). (experimental)</title>
+
+    <style>
+        #editorIframe {
+            border: none;
+            margin: 0px;
+            width: 100%;
+            height: 556px;
+            min-height: 100px;
+            resize: vertical;
+            overflow: scroll;
+        }
+
+        #consoleIframe {
+            border: none;
+            margin: 0px;
+            width: 100%;
+            height: 316px;
+            min-height: 100px;
+            resize: vertical;
+            overflow: scroll;
+        }
+
+        .button_bar {
+            height: fit-content;
+            min-height: 40px;
+            position: relative;
+            border: none;
+            background-color: lightblue;
+            margin-top: 20px;
+            margin-bottom: 6px;
+            padding-bottom: 10px;
+            padding-left: 10px;
+        }
+
+        .button {
+            background-color: lightseagreen;
+            border: none;
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+            position: absolute;
+            top: 50%;
+            -ms-transform: translateY(-50%);
+            transform: translateY(-50%);
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+    </style>
+</head>
+
+<body style="height: fit-content; background-color: rgb(129, 197, 236);">
+    <h3>Editor</h3>
+    <span id="explanation">An example of the editor embedded in an iframe (inline frame).</span>
+    <div id="button-bar" class="button_bar">
+        <span><button class="button" id="outer_save_button">Save from Parent</button></span>
+    </div>
+    <iframe id="editorIframe"></iframe>
+    <h3>Console</h3>
+    <iframe id="consoleIframe" src="console.html"></iframe>
+
+    <script>
+        function getArgument(key, defaultValue) {
+
+            let urlParams = new URLSearchParams(window.location.search);
+
+            // If not present, return default value
+            if (!urlParams.has(key)) {
+                return defaultValue;
+            };
+
+            if (urlParams.get(key) == true) {
+                return true;
+            }
+
+            // If present, check for equivalence to 'true'
+            let val = urlParams.get(key).trim().toLowerCase();
+            if (val == 'true' || val == 'yes' || val == '1') {
+                return true;
+            };
+
+            // Found but not 'true'
+            return false;
+        }
+
+        window.onload = function () {
+
+            /**
+             * Set Editor panel options here
+             */
+
+            explain("<br/>The following options are in effect:");
+            /**
+              * Updates on 'keydown' event. (**optional**).
+              * 
+              * NOTE: Not recommended but makes a good demo.
+              * Refer: https://developer.mozilla.org/en-US/docs/Web/API/Document/keydown_event
+              * 
+              * DEFAULT: false if absent
+              */
+            options.keydown = getArgument('keydown', false);
+            explain("<br/> - Update on 'keydown' event: " + options.keydown);
+
+            /**
+             * Updates on 'change' event. (**optional**).
+             * 
+             * NOTE: This is the recommended default behavior.  
+             * Refer: https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/change_event
+             * 
+             * DEFAULT: true if absent
+             */
+            options.change = getArgument('change', true);
+            explain("<br/> - Update on 'change' event: " + options.change);
+
+
+            /**
+             * Render a save button on the editor panel (**optional**).
+             * 
+             * NOTE: This button is only needed if the parent does not render a button.
+             * 
+             * DEFAULT: false if absent
+             */
+            options.button = getArgument('button', false);
+            explain("<br/> - Render 'save' button on IFrame instead of the parent: " + options.button);
+
+            // If Save button is to be rendered on IFrame, do not render on parent
+            if (options.button == true) {
+                document.getElementById("button-bar").style.display = "none";
+            }
+
+            let editorUrl = 'editor.html' + "?keydown=" + options.keydown + "&change=" + options.change + "&button=" + options.button;
+
+            document.getElementById('editorIframe').src = editorUrl;
+        }
+
+        // Log text to the console frame
+        function explain(message) {
+            document.getElementById('explanation').innerHTML = document.getElementById('explanation').innerHTML.concat('\n' + message);
+        }
+
+        // Log text to the console frame
+        function log(message) {
+            consoleIframe.contentWindow.postMessage(message);
+        }
+
+        function reveal(iframe) {
+            //            iframe.style.display = 'inline-flex';
+            iframe.style.visibility = 'visible';
+        }
+
+        function hide(iframe) {
+            //            iframe.style.display = 'inline-flex';
+            iframe.style.visibility = 'hidden';
+        }
+
+        // addEventListener support for IE8
+        function bindEvent(element, eventName, eventHandler) {
+            if (element.addEventListener) {
+                element.addEventListener(eventName, eventHandler, false);
+            } else if (element.attachEvent) {
+                element.attachEvent('on' + eventName, eventHandler);
+            }
+        }
+
+        var urlParams = new URLSearchParams(window.location.search);
+
+        var options = {
+            button: false,
+            keydown: false,
+            change: true
+        };
+        var editorIframe = document.getElementById('editorIframe');
+
+        var consoleIframe = document.getElementById('consoleIframe');
+
+        var saveButton = document.getElementById('outer_save_button');
+
+        // Send a message to the child iframe
+        var sendMessage = function (msg) {
+            // Make sure you are sending a string, and to stringify JSON
+            editorIframe.contentWindow.postMessage(msg, '*');
+        };
+
+        // Echo message to console iFrame
+        bindEvent(window, 'message', function (event) {
+            consoleIframe.contentWindow.postMessage(event.data);
+        });
+
+        // Update every keypress (a bit extreme)
+        bindEvent(document, 'keydown', function (event) {
+            sendMessage('SAVE_BUTTON_PRESSED');
+        });
+
+        // Send random messge data on every button click
+        bindEvent(saveButton, 'click', function (event) {
+            sendMessage('SAVE_BUTTON_PRESSED');
+        });
+
+    </script>
+</body>
+
+</html>
